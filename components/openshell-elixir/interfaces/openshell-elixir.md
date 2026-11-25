@@ -20,9 +20,10 @@ is `openshell`; every public module lives inside the `Openshell` namespace.
 
 - `connect/2` — `connect(opts, timeout)` opens a channel to a gateway. `opts`
   accepts `:address` (required, `"host:port"`), `:tls` (`true` by default; `false`
-  for local plaintext), `:ca` (CA certificate file or PEM contents), and `:token`
-  (bearer credential, optional for local gateways). Returns
-  `{:ok, client}` or `{:error, reason}`.
+  for local plaintext), `:ca` (CA certificate file or PEM contents), `:cert` and
+  `:key` (client certificate and private key, file path or PEM contents, for mTLS
+  gateways), and `:token` (bearer credential, optional for local gateways).
+  Returns `{:ok, client}` or `{:error, reason}`.
 - `close/1` — closes a client's channel; returns `:ok`.
 
 ### `Openshell.Health`

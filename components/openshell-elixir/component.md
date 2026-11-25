@@ -99,7 +99,7 @@ gateway contract, vendored under `contract/proto/`.
 | Message modules | Pinned component assets under `contract/generated/` — protoc-generated `Openshell.V1`/`Openshell.Datamodel.V1`/`Openshell.Sandbox.V1`/`Openshell.Options.V1` modules; the client SHALL NOT hand-maintain message structs or encoders |
 | Hex dependencies | `grpc` and `protobuf` only — the exact versions are pinned by the generated source BOM and frozen by the lifecycle |
 | Error convention | `{:ok, term} \| {:error, %GRPC.RPCError{}}` |
-| Transport | gRPC over HTTP/2 via the `grpc` package against the generated `Openshell.V1.OpenShell.Stub` (TLS by default, plaintext opt-in for local gateways) |
+| Transport | gRPC over HTTP/2 via the `grpc` package against the generated `Openshell.V1.OpenShell.Stub` (TLS by default, plaintext opt-in; mTLS client credentials via `:cert`/`:key` for gateways that require them) |
 | Package links | homepage and source: `https://github.com/lesserevil/mycelium` |
 
 The public module surface is defined by `interfaces/openshell-elixir.md`; consumers
@@ -126,7 +126,8 @@ is an authored change to this Component that regenerates the assets.
 ### Requirement: The default transport performs real RPCs
 
 The default transport SHALL open a gRPC channel over HTTP/2 with the `grpc`
-package (TLS by default; plaintext when `tls: false`) and SHALL dispatch every
+package (TLS by default; plaintext when `tls: false`; mTLS client credentials
+when `:cert`/`:key` are supplied) and SHALL dispatch every
 public surface call to the corresponding `Openshell.V1.OpenShell.Stub` method.
 No public surface call SHALL return a stubbed or simulated result; an
 unreachable gateway SHALL surface as `{:error, %GRPC.RPCError{code: :unavailable}}`.

@@ -127,5 +127,10 @@
     "patch_authority": "strict",
     "writers": [],
     "branch_gc_minimum_age_days": 7
+  },
+  "component_flavor_selectors": {
+    "components/openshell-elixir": [
+      "+flavor://literate-ai/build-mix"
+    ]
   }
 }

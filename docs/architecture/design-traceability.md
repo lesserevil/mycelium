@@ -1,6 +1,6 @@
 # Design traceability
 
-<!-- literate-ai:authority-reviewed sha256:1032b23ed4ba22cfff6556c6a9ca2d98d8cf0eac49d2836f63c31a591273d476 -->
+<!-- literate-ai:authority-reviewed sha256:67943908bbdfc8d134278459fa2ab18bb7548cd0a3f482535a57d2f48e0875bc -->
 
 [Project guide](../README.md) → design traceability
 

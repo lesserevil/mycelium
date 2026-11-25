@@ -1,0 +1,23 @@
+{
+  "dependencies": [
+    {
+      "name": "grpc",
+      "requirement": "~> 0.10"
+    },
+    {
+      "name": "protobuf",
+      "requirement": "~> 0.14"
+    }
+  ],
+  "description": "Elixir client SDK for the NVIDIA OpenShell gateway API (openshell.v1)",
+  "licenses": [
+    "Apache-2.0"
+  ],
+  "links": {
+    "homepage": "https://github.com/lesserevil/mycelium",
+    "source": "https://github.com/lesserevil/mycelium"
+  },
+  "name": "openshell",
+  "schema": "literate-ai/mix-project@1",
+  "version": "0.1.0"
+}

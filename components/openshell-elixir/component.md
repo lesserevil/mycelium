@@ -2,7 +2,6 @@
 namespace: mycelium
 version: 0.1.0
 display_name: OpenShell Elixir Client
-kind: library
 profiles:
   - library
 sample: false
@@ -45,6 +44,32 @@ flavor_slots:
 entrypoints: []
 acceptance_contracts: []
 source_dependencies: []
+assets:
+  - asset_id: openshell-v1-protobuf
+    source: contract/generated/openshell/v1/openshell.pb.ex
+    path: source/openshell/v1/openshell.pb.ex
+    role: protobuf-contract
+    media_type: text/x-elixir
+  - asset_id: sandbox-v1-protobuf
+    source: contract/generated/openshell/sandbox/v1/sandbox.pb.ex
+    path: source/openshell/sandbox/v1/sandbox.pb.ex
+    role: protobuf-contract
+    media_type: text/x-elixir
+  - asset_id: datamodel-v1-protobuf
+    source: contract/generated/openshell/datamodel/v1/datamodel.pb.ex
+    path: source/openshell/datamodel/v1/datamodel.pb.ex
+    role: protobuf-contract
+    media_type: text/x-elixir
+  - asset_id: options-v1-protobuf
+    source: contract/generated/openshell/options/v1/options.pb.ex
+    path: source/openshell/options/v1/options.pb.ex
+    role: protobuf-contract
+    media_type: text/x-elixir
+  - asset_id: options-v1-pb-extension
+    source: contract/generated/openshell/options/v1/pb_extension.pb.ex
+    path: source/openshell/options/v1/pb_extension.pb.ex
+    role: protobuf-contract
+    media_type: text/x-elixir
 ---
 # OpenShell Elixir Client
 
@@ -67,29 +92,51 @@ gateway contract, vendored under `contract/proto/`.
 
 | Concern | Decision |
 | --- | --- |
-| Component kind | `library` (no product entrypoint) |
+| Component kind | `library` profile (no product entrypoint) |
 | Hex package name | `openshell` |
 | Module namespace | `Openshell` (public modules live inside it) |
 | Wire contract | `openshell.v1` services from the vendored `contract/proto/` |
+| Message modules | Pinned component assets under `contract/generated/` — protoc-generated `Openshell.V1`/`Openshell.Datamodel.V1`/`Openshell.Sandbox.V1`/`Openshell.Options.V1` modules; the client SHALL NOT hand-maintain message structs or encoders |
+| Hex dependencies | `grpc` and `protobuf` only — the exact versions are pinned by the generated source BOM and frozen by the lifecycle |
 | Error convention | `{:ok, term} \| {:error, %GRPC.RPCError{}}` |
-| Transport | gRPC over HTTP/2 (TLS by default, plaintext opt-in for local gateways) |
+| Transport | gRPC over HTTP/2 via the `grpc` package against the generated `Openshell.V1.OpenShell.Stub` (TLS by default, plaintext opt-in for local gateways) |
+| Package links | homepage and source: `https://github.com/lesserevil/mycelium` |
 
 The public module surface is defined by `interfaces/openshell-elixir.md`; consumers
 SHALL depend on that interface rather than any generated file organization.
 
 ### Requirement: Mirror the declared gateway contract
 
-The Component SHALL derive every message and service stub from the vendored
-`contract/proto/` files and SHALL NOT hand-maintain a parallel schema. The vendored
-upstream commit pin (`contract/README.md`) is the contract identity; updating it is
-an authored change to this Component.
+The Component SHALL use the pinned protobuf asset modules under
+`contract/generated/` (protoc-generated from the vendored `contract/proto/`
+files) for every message and service stub, encoding and decoding through them.
+It SHALL NOT hand-maintain parallel message structs, encoders, or decoders, and
+SHALL NOT hand-write another copy of the service method table. The vendored
+upstream commit pin (`contract/README.md`) is the contract identity; updating it
+is an authored change to this Component that regenerates the assets.
 
 #### Scenario: Gateway stubs come from the vendored contract
 
 - **WHEN** the client calls any gateway RPC
-- **THEN** the request and response messages are types generated from the vendored
-  `openshell.v1` contract, and a gateway that drifts from that contract fails the
-  call with a structured gRPC status rather than a partially-valid exchange
+- **THEN** the request and response messages are the pinned protobuf modules
+  generated from the vendored `openshell.v1` contract, and a gateway that drifts
+  from that contract fails the call with a structured gRPC status rather than a
+  partially-valid exchange
+
+### Requirement: The default transport performs real RPCs
+
+The default transport SHALL open a gRPC channel over HTTP/2 with the `grpc`
+package (TLS by default; plaintext when `tls: false`) and SHALL dispatch every
+public surface call to the corresponding `Openshell.V1.OpenShell.Stub` method.
+No public surface call SHALL return a stubbed or simulated result; an
+unreachable gateway SHALL surface as `{:error, %GRPC.RPCError{code: :unavailable}}`.
+
+#### Scenario: Unary call against a live gateway
+
+- **WHEN** `Health.check/2` runs against a reachable gateway
+- **THEN** the response is decoded from the gateway's `HealthResponse` through
+  the generated protobuf module and returned as `{:ok, :healthy}` or
+  `{:ok, :degraded}`
 
 ### Requirement: Structured failures only
 

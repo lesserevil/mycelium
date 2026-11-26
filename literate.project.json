@@ -131,6 +131,9 @@
   "component_flavor_selectors": {
     "components/openshell-elixir": [
       "+flavor://literate-ai/build-mix"
+    ],
+    "components/mycelium-core": [
+      "+flavor://literate-ai/build-mix"
     ]
   }
 }

@@ -58,6 +58,10 @@ follow the component specification's requirements; `Sandbox.subject_type` is
   binding; `{:ok, sandbox}`.
 - `set_connection_custody/2` — records or clears a connection's tailcat
   custody map (`connection.tailcat`); `{:ok, connection}`.
+- `create_sandbox/3` — creates a sandbox row for an existing agent or
+  resource subject (`create_sandbox(subject_type, subject_id, attrs)` with
+  optional `image`); refuses unknown subjects and duplicate rows for the
+  same subject; `{:ok, sandbox}`.
 
 ## Non-goals for 0.1.0
 

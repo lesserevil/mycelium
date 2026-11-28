@@ -268,5 +268,22 @@ defmodule Mycelium.CoreTest do
     assert cleared.tailcat == %{}
   end
 
+  # Sandbox row creation ---------------------------------------------------------
+
+  test "create_sandbox refuses unknown subjects and duplicate rows" do
+    project = project!()
+    user = bootstrap_user!(project)
+    agent = agent!(project, user, "main")
+
+    {:ok, sandbox} = Core.create_sandbox(:agent, agent.id, %{"image" => "nvcr.io/nvidia/base/ubuntu:24.04"})
+    assert sandbox.subject_type == :agent
+
+    {:error, changeset} = Core.create_sandbox(:agent, agent.id, %{})
+    assert "already has a sandbox row" in errors_on(changeset)
+
+    {:error, changeset} = Core.create_sandbox(:agent, agent.id + 999_999, %{})
+    assert "subject is unknown" in errors_on(changeset)
+  end
+
   defp errors_on(changeset), do: for({_field, {msg, _}} <- changeset.errors, do: msg)
 end

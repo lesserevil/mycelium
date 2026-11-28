@@ -166,7 +166,7 @@ defmodule Openshell.Client do
   defp validate_tls(_), do: {:error, {:invalid_argument, "tls must be a boolean"}}
 
   defp validate_string_opt(nil, _name), do: {:ok, nil}
-  defp validate_string_opt(value, name) when is_binary(value), do: {:ok, value}
+  defp validate_string_opt(value, _name) when is_binary(value), do: {:ok, value}
   defp validate_string_opt(_, name), do: {:error, {:invalid_argument, name <> " must be a string"}}
 
   defp validate_name(value, _kind) when is_binary(value) and byte_size(value) > 0, do: {:ok, value}

@@ -188,6 +188,18 @@ Deleting a subject SHALL cascade its sandbox row.
   refresh the cache through the gateway, and no domain decision depends on
   cache freshness
 
+### Requirement: Sandbox rows are created through the context
+
+Consumers SHALL create sandbox rows through `create_sandbox/3`, which SHALL
+refuse unknown subjects and a second sandbox row for the same subject, so
+the one-runtime-binding invariant is enforced in exactly one place.
+
+#### Scenario: Duplicate sandbox row is refused
+
+- **WHEN** `create_sandbox/3` runs twice for the same subject
+- **THEN** the second call is refused with a structured error and the first
+  row is unchanged
+
 ### Requirement: Gateway bindings and tailcat custody are domain mutations
 
 Consuming orchestration SHALL record a sandbox's gateway binding

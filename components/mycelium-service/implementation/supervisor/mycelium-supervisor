@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+# Mycelium reference supervisor — the contract reference for image authors.
+#
+# Image contract (components/mycelium-service/component.md): the image must
+# provide `tailcat`, `curl`, and `jq` on PATH. Configuration comes from the
+# environment:
+#
+#   MYCELIUM_ENDPOINT              base URL of the Mycelium service (required)
+#   MYCELIUM_GATEWAY_SANDBOX_NAME  this sandbox's gateway sandbox name (required)
+#   MYCELIUM_TOKEN                 optional bearer token
+#   MYCELIUM_POLL_INTERVAL         poll interval seconds (default 5)
+#   MYCELIUM_OUTAGE_LIMIT          consecutive failed polls before exit (default 12)
+#
+# Behavior: poll for the desired assignment state; start one `tailcat`
+# listener per serve assignment and check in its address; dial each dial
+# assignment; tear down listeners and tunnels when their assignments
+# disappear; exit non-zero after a sustained endpoint outage.
+#
+# shortcut: 0.1 tunnels are stdio pipes (dial runs `tailcat <addr>` with
+# closed stdio, proving the handshake); port forwarding arrives with the
+# connection-port extension — upgrade then.
+set -u
+
+ENDPOINT=${MYCELIUM_ENDPOINT:?MYCELIUM_ENDPOINT is required}
+NAME=${MYCELIUM_GATEWAY_SANDBOX_NAME:?MYCELIUM_GATEWAY_SANDBOX_NAME is required}
+TOKEN=${MYCELIUM_TOKEN:-}
+INTERVAL=${MYCELIUM_POLL_INTERVAL:-5}
+OUTAGE_LIMIT=${MYCELIUM_OUTAGE_LIMIT:-12}
+
+STATE_DIR=$(mktemp -d)
+trap 'kill $(jobs -p) 2>/dev/null; rm -rf "$STATE_DIR"' EXIT
+failures=0
+
+checkin() { # connection_id address
+  local body
+  body=$(printf '{"sandbox":"%s","role":"serve","connection":%s,"address":"%s"}' \
+    "$NAME" "$1" "$2")
+  curl -sS -X POST -H 'Content-Type: application/json' \
+    ${TOKEN:+-H "Authorization: Bearer $TOKEN"} \
+    -d "$body" "$ENDPOINT/mycelium/v1/checkin" >/dev/null
+}
+
+poll_desired() {
+  local body
+  body=$(printf '{"sandbox":"%s"}' "$NAME")
+  curl -sS -X POST -H 'Content-Type: application/json' \
+    ${TOKEN:+-H "Authorization: Bearer $TOKEN"} \
+    -d "$body" "$ENDPOINT/mycelium/v1/poll" 2>/dev/null
+}
+
+start_serve() { # connection_id
+  local id=$1 out
+  out="$STATE_DIR/serve-$id"
+  tailcat >"$out" 2>&1 &
+  echo $! >"$STATE_DIR/serve-pid-$id"
+  local address
+  address=$(grep -m1 -o 'tc[A-Za-z0-9_-]*' "$out" || true)
+  if [ -n "${address:-}" ]; then
+    checkin "$id" "$address"
+  fi
+}
+
+start_dial() { # connection_id address
+  local id=$1 address=$2
+  tailcat "$address" </dev/null >/dev/null 2>&1 &
+  echo $! >"$STATE_DIR/dial-pid-$id"
+}
+
+stop_if_running() { # pidfile
+  local pidfile=$1
+  if [ -f "$pidfile" ]; then
+    kill "$(cat "$pidfile")" 2>/dev/null || true
+    rm -f "$pidfile"
+  fi
+}
+
+while :; do
+  response=$(poll_desired) || failures=$((failures + 1))
+
+  if [ -z "${response:-}" ]; then
+    failures=$((failures + 1))
+  else
+    failures=0
+  fi
+
+  if [ "$failures" -ge "$OUTAGE_LIMIT" ]; then
+    echo "mycelium-supervisor: endpoint unreachable for $failures polls" >&2
+    exit 1
+  fi
+
+  if [ -n "${response:-}" ]; then
+    desired=$(printf '%s' "$response" | jq -r '.assignments[]? | "\(.role) \(.connection) \(.address // "-")"')
+
+    # Start missing assignments.
+    while read -r role id address; do
+      [ -n "$role" ] || continue
+      case $role in
+        serve)
+          [ -f "$STATE_DIR/serve-pid-$id" ] || start_serve "$id"
+          ;;
+        dial)
+          [ -f "$STATE_DIR/dial-pid-$id" ] || start_dial "$id" "$address"
+          ;;
+      esac
+    done <<<"$desired"
+
+    # Tear down assignments that disappeared.
+    for pidfile in "$STATE_DIR"/serve-pid-* "$STATE_DIR"/dial-pid-*; do
+      [ -e "$pidfile" ] || continue
+      id=${pidfile##*-}
+      kind=${pidfile##*/serve-pid-}; kind=${kind%%-*}
+      [ "$kind" = "serve" ] && kind_kind=serve || kind_kind=dial
+      printf '%s' "$desired" | grep -q "^$kind_kind $id " || stop_if_running "$pidfile"
+    done
+  fi
+
+  sleep "$INTERVAL"
+done

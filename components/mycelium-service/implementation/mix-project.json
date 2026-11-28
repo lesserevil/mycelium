@@ -1,0 +1,16 @@
+{
+  "dependencies": [
+    {"name": "plug", "requirement": "~> 1.16"},
+    {"name": "bandit", "requirement": "~> 1.5"},
+    {"name": "jason", "requirement": "~> 1.4"}
+  ],
+  "description": "Mycelium service: supervisor coordination endpoint, agent sandbox provisioning, reference supervisor",
+  "licenses": ["Apache-2.0"],
+  "links": {
+    "homepage": "https://github.com/lesserevil/mycelium",
+    "source": "https://github.com/lesserevil/mycelium"
+  },
+  "name": "mycelium_service",
+  "schema": "literate-ai/mix-project@1",
+  "version": "0.1.0"
+}

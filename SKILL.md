@@ -36,7 +36,10 @@ sent.
 
 ## Follow the project flow
 
-1. If `PROJECT.md` exists, treat it as the durable goals record; `docs/` is
+1. Always author and lock the Component specification before implementation:
+   a Component's `component.md` and interface contract are written and locked
+   first; generated or retained implementation follows only after that.
+2. If `PROJECT.md` exists, treat it as the durable goals record; `docs/` is
    subordinate. Follow `skills/agent/record-user-directed-work/SKILL.md` before
    substantive implementation. When a derived project discovers reusable parent-owned
    work, search or file the sanitized upstream issue before implementation as that

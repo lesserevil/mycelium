@@ -283,7 +283,9 @@ defmodule Mycelium.Core do
 
   @spec set_connection_state(Connection.t() | integer(), :revoked | :closed, keyword()) ::
           {:ok, Connection.t()} | {:error, Ecto.Changeset.t()}
-  def set_connection_state(connection, state, _opts \\ [])
+  def set_connection_state(connection, state, opts \\ [])
+
+  def set_connection_state(connection, state, _opts)
       when state in [:revoked, :closed] do
     with {:ok, connection} <- resolve_connection(connection),
          :ok <- active?(connection) do
@@ -320,6 +322,40 @@ defmodule Mycelium.Core do
       _ -> error_changeset(%Sandbox{}, :state_cached_at, "must be a timestamp")
     end
   end
+
+  # -- Sandbox rows -----------------------------------------------------------
+
+  @doc """
+  Creates a sandbox row for an existing agent or resource subject. Refuses
+  unknown subjects and a second row for the same subject, so the
+  one-runtime-binding invariant holds.
+  """
+  @spec create_sandbox(:agent | :resource, integer(), map()) ::
+          {:ok, Sandbox.t()} | {:error, Ecto.Changeset.t()}
+  def create_sandbox(subject_type, subject_id, attrs \\ %{})
+      when subject_type in [:agent, :resource] and is_integer(subject_id) do
+    subject = Repo.get(subject_module(subject_type), subject_id)
+    existing = Repo.get_by(Sandbox, subject_type: subject_type, subject_id: subject_id)
+
+    cond do
+      is_nil(subject) ->
+        error_changeset(%Sandbox{}, :subject_id, "subject is unknown")
+
+      not is_nil(existing) ->
+        error_changeset(%Sandbox{}, :subject_id, "already has a sandbox row")
+
+      true ->
+        %Sandbox{}
+        |> Sandbox.changeset(Map.merge(stringify_keys(attrs), %{
+          "subject_type" => subject_type,
+          "subject_id" => subject_id
+        }))
+        |> Repo.insert()
+    end
+  end
+
+  defp subject_module(:agent), do: Agent
+  defp subject_module(:resource), do: Resource
 
   # -- Gateway bindings and tailcat custody ---------------------------------
 
@@ -372,7 +408,7 @@ defmodule Mycelium.Core do
       })
       |> Repo.insert()
 
-    {:ok, sandbox} =
+    {:ok, _sandbox} =
       %Sandbox{}
       |> Sandbox.changeset(%{
         subject_type: :resource,

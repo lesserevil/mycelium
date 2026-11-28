@@ -134,6 +134,9 @@
     ],
     "components/mycelium-core": [
       "+flavor://literate-ai/build-mix"
+    ],
+    "components/mycelium-orchestration": [
+      "+flavor://literate-ai/build-mix"
     ]
   }
 }

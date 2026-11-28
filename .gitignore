@@ -25,3 +25,7 @@ dist/
 .testmondata
 .testmondata-journal
 .testmondata.identity.json
+
+# mix projections inside component implementations
+components/*/implementation/deps/
+components/*/implementation/_build/

@@ -1,0 +1,12 @@
+{
+  "dependencies": [],
+  "description": "Mycelium sandbox orchestration: binds core domain rows to OpenShell sandboxes and brokers tailcat connections",
+  "licenses": ["Apache-2.0"],
+  "links": {
+    "homepage": "https://github.com/lesserevil/mycelium",
+    "source": "https://github.com/lesserevil/mycelium"
+  },
+  "name": "mycelium_orchestration",
+  "schema": "literate-ai/mix-project@1",
+  "version": "0.1.0"
+}

@@ -1,0 +1,16 @@
+{
+  "dependencies": [
+    {"name": "ecto_sql", "requirement": "~> 3.13"},
+    {"name": "postgrex", "requirement": "~> 0.21"},
+    {"name": "jason", "requirement": "~> 1.4"}
+  ],
+  "description": "Mycelium core domain: projects, users, agents, resources, sandboxes, connections, approvals",
+  "licenses": ["Apache-2.0"],
+  "links": {
+    "homepage": "https://github.com/lesserevil/mycelium",
+    "source": "https://github.com/lesserevil/mycelium"
+  },
+  "name": "mycelium_core",
+  "schema": "literate-ai/mix-project@1",
+  "version": "0.1.0"
+}

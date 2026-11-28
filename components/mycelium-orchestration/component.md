@@ -86,6 +86,7 @@ flowchart LR
 | Hex dependencies | none — gateway calls come from the `mycelium.openshell-elixir` capability, domain mutations from `mycelium.mycelium-core` |
 | Sandbox images | supplied by the project's allowlisted images, which MUST contain the Mycelium supervisor and tailcat; this Component never builds or uploads images |
 | Tailcat custody | one ephemeral `tailcat` listener per connection inside the destination sandbox; addresses are recorded in the connection row and never reused |
+| Supervisor path | allowlisted images expose the supervisor at `/usr/local/bin/mycelium-supervisor`; `ensure_sandbox` creates the gateway sandbox with that path as the main-process command (OpenShell runs a login shell when no command is given) |
 
 ## The supervisor coordination protocol
 
@@ -95,11 +96,17 @@ Every allowlisted image's supervisor therefore performs two operations against
 the service endpoint:
 
 - **check-in** — after starting a tailcat listener, the supervisor posts
-  `{"sandbox": <gateway sandbox name>, "role": "serve", "address": <tailcat
-  address>}`. Orchestration validates the sandbox and records the address.
-- **poll** — the supervisor retrieves `{"assignments": [...]}` where each
-  assignment carries `{"role": "dial", "address": <tailcat address>,
-  "connection": <id>}`; the supervisor dials the address with tailcat.
+  `{"sandbox": <gateway sandbox name>, "role": "serve", "connection": <id>,
+  "address": <tailcat address>}`. Orchestration validates the sandbox and
+  records the address as that connection's custody. A resource sandbox may
+  serve several connections at once; each listener is scoped to one
+  connection id.
+- **poll** — the supervisor retrieves the full desired assignment state
+  `{"assignments": [...]}`; each assignment carries `{"role": "serve" |
+  "dial", "connection": <id>}` plus `"address"` on dial assignments. The
+  supervisor reconciles: assignments that disappear from the poll are torn
+  down, and the supervisor dials a given connection's address only while the
+  connection is `active`.
 
 Assignment delivery is at-least-once and idempotent by connection id; the
 supervisor dials a given connection's address only until the connection

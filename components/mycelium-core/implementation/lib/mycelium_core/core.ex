@@ -321,6 +321,41 @@ defmodule Mycelium.Core do
     end
   end
 
+  # -- Gateway bindings and tailcat custody ---------------------------------
+
+  @spec bind_sandbox_gateway(Sandbox.t() | integer(), String.t(), String.t() | nil) ::
+          {:ok, Sandbox.t()} | {:error, Ecto.Changeset.t()}
+  def bind_sandbox_gateway(sandbox, gateway_sandbox_name, image \\ nil) do
+    with {:ok, sandbox} <- resolve_sandbox(sandbox),
+         true <-
+           is_nil(gateway_sandbox_name) or
+             (is_binary(gateway_sandbox_name) and gateway_sandbox_name != "") do
+      sandbox
+      |> change()
+      |> put_change(:gateway_sandbox_name, gateway_sandbox_name)
+      |> put_change(:image, image)
+      |> Repo.update()
+    else
+      false -> error_changeset(%Sandbox{}, :gateway_sandbox_name, "must be a nonempty string")
+      error -> error
+    end
+  end
+
+  @spec set_connection_custody(Connection.t() | integer(), map() | nil) ::
+          {:ok, Connection.t()} | {:error, Ecto.Changeset.t()}
+  def set_connection_custody(connection, custody) do
+    with {:ok, connection} <- resolve_connection(connection),
+         true <- is_nil(custody) or (is_map(custody) and not is_struct(custody)) do
+      connection
+      |> change()
+      |> put_change(:tailcat, custody)
+      |> Repo.update()
+    else
+      false -> error_changeset(%Connection{}, :tailcat, "must be a map or nil")
+      error -> error
+    end
+  end
+
   # -- Internals --------------------------------------------------------------
 
   defp insert_resource(project_id, agent_id, attrs, created_via) do

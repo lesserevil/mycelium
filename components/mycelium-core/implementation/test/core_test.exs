@@ -238,5 +238,35 @@ defmodule Mycelium.CoreTest do
     assert cached.state_cached_at == DateTime.truncate(now, :second)
   end
 
+  # Gateway bindings and tailcat custody ---------------------------------------
+
+  test "bind_sandbox_gateway records the gateway name; custody round-trips" do
+    policy = %{"image_allowlist" => ["nvcr.io/nvidia/base/ubuntu:24.04"]}
+    project = project!(policy)
+    user = bootstrap_user!(project)
+    agent = agent!(project, user, "main")
+
+    {:ok, resource, :policy_auto} =
+      Core.request_resource(project, agent, %{"name" => "db", "kind" => "database",
+                                              "protocol" => "postgres",
+                                              "image" => "nvcr.io/nvidia/base/ubuntu:24.04"})
+
+    sandbox =
+      Mycelium.Core.Repo.get_by!(Mycelium.Core.Sandbox, subject_type: :resource, subject_id: resource.id)
+
+    {:ok, bound} = Core.bind_sandbox_gateway(sandbox, "gw-sbx-123")
+    assert bound.gateway_sandbox_name == "gw-sbx-123"
+
+    {:ok, connection, :auto} = Core.connect(agent, resource, "postgres")
+
+    {:ok, with_custody} =
+      Core.set_connection_custody(connection, %{"destination_address" => "tcABC"})
+
+    assert with_custody.tailcat == %{"destination_address" => "tcABC"}
+
+    {:ok, cleared} = Core.set_connection_custody(connection, %{})
+    assert cleared.tailcat == %{}
+  end
+
   defp errors_on(changeset), do: for({_field, {msg, _}} <- changeset.errors, do: msg)
 end

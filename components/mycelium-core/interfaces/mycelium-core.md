@@ -53,6 +53,11 @@ follow the component specification's requirements; `Sandbox.subject_type` is
   `closed`; returns `{:ok, connection}`.
 - `record_sandbox_state/3` — caches gateway state (`gateway_state`,
   observed at `state_cached_at`) on a sandbox row; `{:ok, sandbox}`.
+- `bind_sandbox_gateway/3` — records the gateway sandbox name on a sandbox
+  row (`gateway_sandbox_name`, `image`); passing `nil` as the name clears the
+  binding; `{:ok, sandbox}`.
+- `set_connection_custody/2` — records or clears a connection's tailcat
+  custody map (`connection.tailcat`); `{:ok, connection}`.
 
 ## Non-goals for 0.1.0
 

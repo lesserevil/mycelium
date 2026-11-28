@@ -187,3 +187,18 @@ Deleting a subject SHALL cascade its sandbox row.
 - **THEN** the domain still answers queries from its own rows; consumers
   refresh the cache through the gateway, and no domain decision depends on
   cache freshness
+
+### Requirement: Gateway bindings and tailcat custody are domain mutations
+
+Consuming orchestration SHALL record a sandbox's gateway binding
+(`gateway_sandbox_name`) and a connection's tailcat custody through the
+context functions `bind_sandbox_gateway/3` and `set_connection_custody/2`,
+not by writing the schema tables directly. Custody is cleared by recording
+an empty map.
+
+#### Scenario: Custody round-trips through the context
+
+- **WHEN** `set_connection_custody/2` records a custody map and then an
+  empty map
+- **THEN** the connection row reflects each write and both calls return
+  `{:ok, connection}`

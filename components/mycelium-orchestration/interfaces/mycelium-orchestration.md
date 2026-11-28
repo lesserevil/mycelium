@@ -20,7 +20,8 @@ inside the `Mycelium.Orchestration` namespace.
 - `ensure_sandbox/2` — `ensure_sandbox(client, sandbox)` binds a domain
   sandbox row (agent or resource subject) to a real gateway sandbox: refuses
   images outside the project's `image_allowlist`, creates the gateway sandbox
-  exactly once for an unbound row, records the gateway sandbox name, and
+  exactly once for an unbound row with `/usr/local/bin/mycelium-supervisor`
+  as the main-process command, records the gateway sandbox name, and
   refreshes the cached state. Returns `{:ok, sandbox}`.
 - `refresh_sandbox_state/2` — `refresh_sandbox_state(client, sandbox)` reads
   the gateway sandbox and caches the observation through the core domain.
@@ -45,9 +46,10 @@ inside the `Mycelium.Orchestration` namespace.
 ### Supervisor protocol payloads (owned here, hosted by the service component)
 
 - check-in body: `{"sandbox": <gateway sandbox name>, "role": "serve",
-  "address": <tailcat address>}`
-- poll body: `{"assignments": [{"connection": <id>, "role": "dial",
-  "address": <tailcat address>}]}`
+  "connection": <id>, "address": <tailcat address>}`
+- poll body: `{"assignments": [{"role": "serve" | "dial", "connection": <id>,
+  ("address": <tailcat address>)}]}` — the full desired state for that
+  sandbox; the supervisor reconciles against it.
 
 ## Non-goals for 0.1.0
 
